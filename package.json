@@ -1,0 +1,23 @@
+{
+  "name": "ida",
+  "version": "0.0.1",
+  "description": "Generate static websites",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "ida",
+    "static",
+    "website"
+  ],
+  "author": "Andreas McDermott",
+  "license": "ISC",
+  "bin": "./index.js",
+  "dependencies": {
+    "co": "^4.6.0",
+    "co-fs": "^1.2.0",
+    "commander": "^2.9.0",
+    "inquirer": "^1.1.2"
+  }
+}
