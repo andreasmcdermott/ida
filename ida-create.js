@@ -4,7 +4,7 @@
 const program = require('commander');
 const co = require('co');
 const fs = require('co-fs');
-const utils = require('./utils/utils');
+const confirm = require('./input/confirm');
 const createProject = require('./commands/create_project');
 
 program
@@ -15,11 +15,13 @@ const projectName = program.args[0];
 const path = getPath(projectName);
 
 co(function *() {
-  yield utils.ensureFolderExists(path);
+  yield ensureFolderExists(path);
   const files = yield fs.readdir(path);
   if (files.length && !program.force) {
-    const clearFolder = yield utils.confirm('Folder not empty. Delete all files?');
-    if (!clearFolder) return false;
+    const clearFolder = yield confirm('Folder not empty. Delete all files?');
+    if (!clearFolder) {
+      return false;
+    }
   }
 
   yield createProject(path, projectName);
@@ -34,8 +36,22 @@ function getPath(projectName) {
   else return process.cwd();
 }
 
+function ensureFolderExists(path) {
+  return co(function *() {
+    const exists = yield fs.exists(path);
+    if (exists) {
+      const stats = yield fs.stat(path);
+      if (!stats.isDirectory()) {
+        throw new Error(`${path} exists, but is not a folder.`);
+      }
+    } else {
+      yield fs.mkdir(path);
+    }
+  });
+}
+
 function onError(err) {
   console.error('Failed to create project.');
   console.error(err.message);
-  console.error(err.stack);
+  //console.error(err.stack);
 }
