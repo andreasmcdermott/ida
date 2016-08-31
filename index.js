@@ -1,9 +1,19 @@
 #!/usr/bin/env node
 'use strict';
 
-const program = require('commander');
-program
-  .version('0.0.1')
-  .command('create [name]', 'create new project structure')
-  .command('build', 'build project', { isDefault: true })
-  .parse(process.argv);
+const Argumenter = require('./lib/argumenter');
+let argumenter = new Argumenter();
+
+argumenter.on('create', require('./commands/create'));
+argumenter.on('build', require('./commands/build'));
+argumenter.on('help', require('./commands/help'));
+argumenter.on('version', require('./commands/version'));
+
+argumenter.dispatch(process.argv, { 
+  default: 'build',
+  alias: {
+    'help': ['h'],
+    'version': ['v'],
+    'force': ['f']
+  } 
+});
