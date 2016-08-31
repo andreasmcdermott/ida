@@ -13,13 +13,19 @@ module.exports = function (path, name) {
     const questions = [{
       name: 'name',
       default: name || getDirName(path),
-      message: 'Project name'
+      message: 'Website title'
+    }, {
+      name: 'template',
+      default: 'ida-default',
+      message: 'Website template'
     }];
 
     const settings = yield prompt(questions);
-    yield createFile(path, 'ida.properties', JSON.stringify(settings, null, 2));
-    yield createFile(path, 'index.html', getIndexHtml(settings.name));
-    yield createFolder(path, 'site');
+    yield createFile(path, 'ida.json', JSON.stringify(settings, null, 2));
+    yield createFile(path, 'README.md', getReadme(settings.name));
+    yield createFolder(path, '_site');
+    yield createFolder(path, 'templates');
+    yield createFolder(path, 'content');
   });
 };
 
@@ -28,28 +34,10 @@ function getDirName(path) {
   return parts[parts.length - 1];
 }
 
-function getIndexHtml(name) {
-  return `<!doctype html>
-  <html lang="en">
-  <head>
-    <title>${name}</title>
-    <meta charset="utf-8">
-    <meta http-equiv="x-ua-compatible" content="ie=edge">
-    <meta name="description" content="">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-  </head>
-  <body>
-    <h1>Welcome to Ida!</h1>
-    <p>
-      <strong>Next steps:</strong>
-      <ol>
-        <li>Update layout</li>
-        <li>Add pages and posts</li>
-        <li>Run "ida build"</li>
-        <li>Upload to content of "site" to your favorite host</li>
-      </ol>
-    </p>
-  </body>
-  </html>
-  `;
+function getReadme(name) {
+  return `
+# Site: ${name}
+
+* Next step: Do whatever
+`;
 }
