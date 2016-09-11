@@ -27,24 +27,23 @@ module.exports = function (args) {
   .catch(err => {
     console.error('Failed to create project.');
     console.error(err.message);
-    //console.error(err.stack);
   });
 };
 
 function createProject(path) {
   return co(function *() {
     yield clearFolder(path);
-    const questions = [{
-      name: 'title',
-      default: getDirName(path),
-      message: 'Title'
-    }, {
-      name: 'template',
-      default: 'jo',
-      message: 'Template'
-    }];
+    
+    const settings = {
+      title: getDirName(path),
+      description: '',
+      author: '',
+      template: '',
+      prettyUrls: true,
+      language: 'en-US',
+      url: `http://www.${getDirName(path)}.com`
+    };
 
-    const settings = yield prompt(questions);
     yield createFile(path, 'ida.json', JSON.stringify(settings, null, 2));
     yield createFile(path, 'README.md', getReadme(settings.title));
     yield createFolder(path, '_site');
@@ -60,7 +59,5 @@ function getDirName(path) {
 
 function getReadme(title) {
   return `# Site: ${title}
-
-* Next step: Do whatever
 `;
 }

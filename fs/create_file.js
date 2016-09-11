@@ -5,6 +5,6 @@ const fs = require('co-fs');
 
 module.exports = function (path, name, data) {
   return co(function *() {
-    yield fs.writeFile(`${path}/${name}`, data);
+    yield fs.writeFile(`${path}/${name}`, data, 'utf8');
   });
 };
