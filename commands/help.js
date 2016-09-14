@@ -9,7 +9,7 @@ module.exports = function () {
     pkg.description,
     '',
     'Usage:',
-    '  ida create [-f | --force]',
+    '  ida create [name] [-f | --force]',
     '  ida [build]',
     '  ida -v | --version',
     '  ida -h | --help'

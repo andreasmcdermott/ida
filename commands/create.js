@@ -7,15 +7,25 @@ const prompt = require('../input/prompt');
 const clearFolder = require('../fs/clear_folder');
 const createFolder = require('../fs/create_folder');
 const createFile = require('../fs/create_file');
+const exists = require('../fs/exists');
 
 module.exports = function (args) {
-  const path = process.cwd();
+  const name = args._[0] || '';
+  const force = args.force;
+  const currentDir = process.cwd();
+  const path = `${currentDir}${name ? `/${name}` : ``}`;
+
   co(function *() {
-    const files = yield fs.readdir(path);
-    if (files.length && !args.force) {
-      const clearFolder = yield confirm('Folder not empty. Delete all files?');
-      if (!clearFolder) {
-        return false;
+    const folderExists = yield exists(path);
+    if (!folderExists) {
+      createFolder(currentDir, name);
+    } else {
+      const files = yield fs.readdir(path);
+      if (files.length && !force) {
+        const clearFolder = yield confirm('Folder not empty. Delete all files?');
+        if (!clearFolder) {
+          return false;
+        }
       }
     }
 

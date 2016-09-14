@@ -2,7 +2,7 @@
 'use strict';
 
 const Argumenter = require('./lib/argumenter');
-let argumenter = new Argumenter();
+const argumenter = new Argumenter();
 
 argumenter.on('create', require('./commands/create'));
 argumenter.on('build', require('./commands/build'));
