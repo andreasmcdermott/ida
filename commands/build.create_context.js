@@ -15,10 +15,17 @@ module.exports = function (content, settings) {
   };
 
   let hasError = false;
+  let currentDate = new Date();
   content.forEach(item => {
     if (item.error) {
       console.error(item.error);
       hasError = true;
+    }
+
+    let contentItem = createContentItem(item, settings);
+
+    if (contentItem.draft || (contentItem.date && new Date(contentItem.date) > currentDate)) {
+      return;
     }
 
     let parent = context;
@@ -28,7 +35,8 @@ module.exports = function (content, settings) {
       }
       parent = parent[folder];
     });
-    parent[item.name] = createContentItem(item, settings);
+
+    parent[item.name] = contentItem;
   });
 
   return hasError ? null : context;
@@ -48,7 +56,10 @@ function createContentItem(item, settings) {
     slug: nameParts.shift(),
   };
 
-  contentItem.url = `/${contentItem.slug}${settings.prettyUrls ? '' : '.html'}`;
+  let path = item.folders.length ? `/${item.folders.join('/')}/` : '/';
+  let extension = settings.prettyUrls ? '' : '.html';
+  let slug = contentItem.slug === 'index' ? '' : contentItem.slug;
+  contentItem.url = `${path}${slug}${extension}`;
 
   Object.keys(item.config).forEach(key => {
     if (Object.hasOwnProperty.call(item.config, key)) {

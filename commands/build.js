@@ -49,6 +49,9 @@ function build(outputDir, content, settings, templates) {
       createdFolders = createdFolders.concat(newFolders);
     
       let current = getCurrentItemFromContext(context, item);
+      if (!current) {
+        continue;
+      }
 
       let filePath = null;
       let fileName = null;
