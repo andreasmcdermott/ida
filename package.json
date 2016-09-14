@@ -18,8 +18,10 @@
   "dependencies": {
     "co": "^4.6.0",
     "co-fs": "^1.2.0",
+    "handlebars": "^4.0.5",
     "inquirer": "^1.1.2",
     "marked": "^0.3.6",
-    "minimist": "^1.2.0"
+    "minimist": "^1.2.0",
+    "moment": "^2.15.0"
   }
 }

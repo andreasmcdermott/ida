@@ -2,6 +2,8 @@
 
 const co = require('co');
 const fs = require('co-fs');
+const getAllFiles = require('../fs/get_all_files');
+const stripFolderAndExtension = require('../fs/strip_folder_and_extension');
 const marked = require('marked');
 
 module.exports = function(project_root) {
@@ -12,36 +14,27 @@ module.exports = function(project_root) {
       throw new Error(`"${content_root}" exists, but is not a folder.. That's weird.`);
     }
 
-    function iterateFiles(subPath, content) {
-      return co(function *() {
-        const path = !subPath ? content_root : `${content_root}/${subPath}`;
-        const files = yield fs.readdir(path);
-        for (let i = 0; i < files.length; ++i) {
-          const file = files[i];
-          const filePath = `${path}/${file}`;
-          yield co(function *() {
-            const stats = yield fs.stat(filePath);
-            if (stats.isFile()) {
-              const fileContent = yield fs.readFile(filePath, 'utf8');
-              const parsedContent = parseFileContent(fileContent);
-              content.files.push( { 
-                filename: file, 
-                config: parsedContent.config,
-                markdown: parsedContent.markdown,
-                html: parsedContent.html,
-                error: parsedContent.error 
-              });
-            } else if (stats.isDirectory()) {
-              content.folders[file] = yield iterateFiles(`${subPath}${file}`, { files: [], folders: {} });
-            }
-          });
-        };
+    const files = yield getAllFiles(content_root);
+    const content = [];
+    for (let i = 0; i < files.length; ++i) {
+      const file = files[i];
+      const fileContent = yield fs.readFile(file, 'utf8');
+      const parsedContent = parseFileContent(fileContent);
+      const fileName = file.substr(content_root.length + 1);
+      const folders = fileName.split('/').slice(0, -1);
+      const name = stripFolderAndExtension(fileName);
 
-        return content;
+      content.push({ 
+        name,
+        folders,
+        config: parsedContent.config || {},
+        markdown: parsedContent.markdown || '',
+        html: parsedContent.html || '',
+        error: parsedContent.error 
       });
     }
 
-    return iterateFiles('', { files: [], folders: {} });
+    return content;
   })
   .catch(function (err) {
     console.error(err.message);
@@ -65,8 +58,6 @@ function parseFileContent(fileContent) {
   parsedContent.markdown = fileContent.trim();
   parsedContent.html = marked(parsedContent.markdown);
 
-  console.log(parsedContent);
-
   return parsedContent;
 }
 
@@ -85,5 +76,5 @@ function getConfig(fileContent) {
     }
   }
 
-  throw new Error('Invalid JSON. Closing brackets ("}") need to match opening brackets ("{"}).');
+  throw new Error('Invalid JSON.');
 }
