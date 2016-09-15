@@ -4,22 +4,24 @@ const co = require('co');
 const fs = require('co-fs');
 const getAllFiles = require('../fs/get_all_files');
 const stripFolderAndExtension = require('../fs/strip_folder_and_extension');
+const stripFolders = require('../fs/strip_folders');
+const getExtension('../fs/get_extension');
 
-module.exports = function (project_root, settings) {
+module.exports = function (projectRoot, settings) {
   return co(function *() {
     const pathToLayout = settings.template ? 
-      `${project_root}/templates/${settings.template}` :
-      `${project_root}/layout`;
-    
+      `${projectRoot}/templates/${settings.template}` :
+      `${projectRoot}/layout`;
+
     const stats = yield fs.stat(pathToLayout);
     if (!stats.isDirectory()) {
       throw new Error(`"${pathToLayout}" exists, but is not a folder..? Weird.`)
     }
 
-    const files = yield getAllFiles(pathToLayout);
-    
+    const files = yield getAllFiles(pathToLayout);    
     const partials = [];
     const templates = [];
+    const assets = [];
 
     for(let i = 0; i < files.length; ++i) {
       const file = files[i];
@@ -31,6 +33,13 @@ module.exports = function (project_root, settings) {
           name: stripFolderAndExtension(fileName),
           template: fileContent
         });
+      } else if (fileName.startsWith('assets')) {
+        assets.push({
+          folders: fileName.split('/').slice(1, -1),
+          name: stripFolderAndExtension(fileName),
+          content: fileContent,
+          extension: getExtension(fileName)
+        });
       } else {
         templates.push({
           folders: fileName.split('/').slice(0, -1),
@@ -40,7 +49,7 @@ module.exports = function (project_root, settings) {
       }
     }
 
-    return { partials, templates };
+    return { partials, templates, assets };
   })
   .catch(function (err) {
     if (settings.template) {

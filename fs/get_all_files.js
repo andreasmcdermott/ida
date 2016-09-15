@@ -13,7 +13,7 @@ module.exports = function (root) {
     function iterateFiles(subPath) {
       return co(function *() {
         let allFiles = [];
-        const path = !subPath ? root : `${root}/${subPath}`;
+        const path = !subPath ? root : `${root}${subPath}`;
         const files = yield fs.readdir(path);
         for (let i = 0; i < files.length; ++i) {
           const file = files[i];
@@ -23,7 +23,7 @@ module.exports = function (root) {
             if (stats.isFile()) {
               allFiles.push(filePath);
             } else if (stats.isDirectory()) {
-              const filesInDir = yield iterateFiles(`${subPath}${file}`);
+              const filesInDir = yield iterateFiles(`${subPath}/${file}`);
               allFiles = allFiles.concat(filesInDir);
             }
           });

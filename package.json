@@ -22,6 +22,7 @@
     "inquirer": "^1.1.2",
     "marked": "^0.3.6",
     "minimist": "^1.2.0",
-    "moment": "^2.15.0"
+    "moment": "^2.15.0",
+    "stylus": "^0.54.5"
   }
 }
