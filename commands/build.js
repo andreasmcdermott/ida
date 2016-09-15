@@ -9,7 +9,7 @@ const createContext = require('./build.create_context');
 const clearFolder = require('../fs/clear_folder');
 const createFolder = require('../fs/create_folder');
 const createFile = require('../fs/create_file');
-const stylus = require('stylus');
+const copyDir = require('copy-dir');
 
 module.exports = function () {
   const path = process.cwd();
@@ -21,7 +21,9 @@ module.exports = function () {
     const content = yield get_content(path);
 
     yield build(outputDir, content, settings, prepareTemplates(layout.templates, layout.partials));
-    yield processAssets(outputDir, path, layout.assets);
+    if (layout.assetsDir) {
+      copyDir.sync(layout.assetsDir, `${outputDir}/assets`);
+    }
 
     return true;
   })
@@ -142,40 +144,3 @@ function getTemplate(item, templates) {
   }
   return template;
 } 
-
-function processAssets(outputDir, rootDir, assets) {
-  return co(function *() {
-    yield createFolder(outputDir, 'assets');
-    const assetsDir = `${outputDir}/assets`;
-    const createdFolders = [];
-
-    for (let i = 0; i < assets.length; ++i) {
-      let asset = assets[i];
-      
-      let path = assetsDir;
-      let isStyle = false;
-      for (let j = 0; j < asset.folders.length; ++j) {
-        var folder = asset.folders[j];
-        if (folder === 'css') {
-          isStyle = true;
-        }
-        if (!createdFolders.includes(`${path}/${folder}`)) {
-          yield createFolder(path, folder);
-          path = `${path}/${folder}`;
-          createdFolders.push(path);
-        }
-      }
-      if (isStyle && asset.extension === 'stylus') {
-        stylus(asset.content).render(function (err, css) {
-          if (err) {
-            console.error(err);
-          }
-
-          co(function *() {
-            yield createFile(path, `${asset.name}.css`, css);
-          });
-        });
-      }
-    }
-  });
-}
