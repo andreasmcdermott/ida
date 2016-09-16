@@ -6,6 +6,7 @@ const argumenter = new Argumenter();
 
 argumenter.on('create', require('./commands/create'));
 argumenter.on('build', require('./commands/build'));
+argumenter.on('watch', require('./commands/watch'));
 argumenter.on('help', require('./commands/help'));
 argumenter.on('version', require('./commands/version'));
 

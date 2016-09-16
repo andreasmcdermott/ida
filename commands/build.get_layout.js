@@ -29,18 +29,21 @@ module.exports = function (projectRoot, settings) {
       if (fileName.startsWith('assets')) {
         hasAssets = true;
         continue;
+      } else if (!fileName.startsWith('templates')) {
+        continue;
       }
 
+      const folders = fileName.split('/').slice(1, -1);
       const fileContent = yield fs.readFile(file, 'utf8');
 
-      if (fileName.startsWith('_partials')) {
+      if (folders[0] === '_partials') {
         partials.push({
           name: stripFolderAndExtension(fileName),
           template: fileContent
         });
       } else {
         templates.push({
-          folders: fileName.split('/').slice(0, -1),
+          folders: folders,
           name: stripFolderAndExtension(fileName),
           template: fileContent
         });

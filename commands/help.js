@@ -11,6 +11,7 @@ module.exports = function () {
     'Usage:',
     '  ida create [name] [-f | --force]',
     '  ida [build]',
+    '  ida watch',
     '  ida -v | --version',
     '  ida -h | --help'
   ].forEach(ln => {
