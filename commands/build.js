@@ -31,7 +31,7 @@ module.exports = function () {
     console.error('Failed to build project.');
     console.error(err.message);
     return false;
-  })
+  });
 };
 
 function build(outputDir, content, settings, templates) {
