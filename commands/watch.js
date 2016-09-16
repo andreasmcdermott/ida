@@ -4,21 +4,18 @@ const fs = require('fs');
 const build = require('./build')
 
 module.exports = function () {
-  const ignore = [
-    '.git',
-    '_site',
+  const watched = [
+    'content',
+    'themes',
+    'layout/templates',
+    'layout/assets',
+    'ida.json'
   ];
   const path = process.cwd();
   const watcher = fs.watch(path, { recursive: true }, function (eventType, fileName) {
-    if (fileName.startsWith('.') || fileName.startsWith('_site')) {
-      return;
+    if (watched.some(path => fileName.startsWith(path))) {
+      build();
+      console.log('Updated..');
     }
-    if (fileName.startsWith('layout') && 
-        !(fileName.startsWith('layout/templates') || fileName.startsWith('layout/assets'))) {
-      return;
-    }
-
-    build();
-    console.log('Building..');
   });
 };

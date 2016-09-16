@@ -48,17 +48,20 @@ function createProject(path) {
       title: getDirName(path),
       description: '',
       author: '',
-      template: '',
+      theme: '',
       prettyUrls: true,
-      language: 'en-US',
+      language: 'en',
       url: `http://www.${getDirName(path)}.com`
     };
 
     yield createFile(path, 'ida.json', JSON.stringify(settings, null, 2));
     yield createFile(path, 'README.md', getReadme(settings.title));
     yield createFolder(path, '_site');
-    yield createFolder(path, 'templates');
+    yield createFolder(path, 'themes');
     yield createFolder(path, 'content');
+    yield createFolder(path, 'layout');
+    yield createFolder(`${path}/layout`, 'templates');
+    yield createFolder(`${path}/layout`, 'assets');
   });
 }
 

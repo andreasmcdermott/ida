@@ -8,8 +8,8 @@ const stripFolders = require('../fs/strip_folders');
 
 module.exports = function (projectRoot, settings) {
   return co(function *() {
-    const pathToLayout = settings.template ? 
-      `${projectRoot}/templates/${settings.template}` :
+    const pathToLayout = settings.theme ? 
+      `${projectRoot}/themes/${settings.theme}` :
       `${projectRoot}/layout`;
 
     const stats = yield fs.stat(pathToLayout);
@@ -26,10 +26,7 @@ module.exports = function (projectRoot, settings) {
       const file = files[i];
       const fileName = file.substr(pathToLayout.length + 1);
 
-      if (fileName.startsWith('assets')) {
-        hasAssets = true;
-        continue;
-      } else if (!fileName.startsWith('templates')) {
+      if (!(fileName.startsWith('assets') || fileName.startsWith('templates'))) {
         continue;
       }
 
@@ -50,11 +47,11 @@ module.exports = function (projectRoot, settings) {
       }
     }
 
-    return { partials, templates, assetsDir: hasAssets ? `${pathToLayout}/assets` : null };
+    return { partials, templates, assetsDir: `${pathToLayout}/assets` };
   })
   .catch(function (err) {
     if (settings.template) {
-      throw new Error(`Couldn't find template "${settings.template}" in folder "${project_root}/templates.`);
+      throw new Error(`Couldn't find theme "${settings.theme}" in folder "${project_root}/themes.`);
     } else {
       throw new Error(`Couldn't find folder "${project_root}/layout".`);
     }
