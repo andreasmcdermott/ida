@@ -2,43 +2,195 @@
 
 'use strict';
 
-console.log('build', process.argv);
+var _regenerator = require('babel-runtime/regenerator');
 
-// 'use strict';
+var _regenerator2 = _interopRequireDefault(_regenerator);
 
-// const co = require('co');
-// const get_settings = require('./build.get_settings');
-// const get_layout = require('./build.get_layout');
-// const get_content = require('./build.get_content');
-// const prepareTemplates = require('./build.prepare_templates');
-// const createContext = require('./build.create_context');
-// const clearFolder = require('../fs/clear_folder');
-// const createFolder = require('../fs/create_folder');
-// const createFile = require('../fs/create_file');
-// const copyDir = require('copy-dir');
+var _asyncToGenerator2 = require('babel-runtime/helpers/asyncToGenerator');
 
-// module.exports = function () {
-//   const path = process.cwd();
-//   const outputDir = `${path}/_site`;
+var _asyncToGenerator3 = _interopRequireDefault(_asyncToGenerator2);
 
-//   co(function *() {
-//     const settings = yield get_settings(path);
-//     const layout = yield get_layout(path, settings);
+var _path = require('path');
+
+var _minimist = require('minimist');
+
+var _minimist2 = _interopRequireDefault(_minimist);
+
+var _chalk = require('chalk');
+
+var _chalk2 = _interopRequireDefault(_chalk);
+
+var _copyDir = require('copy-dir');
+
+var _copyDir2 = _interopRequireDefault(_copyDir);
+
+var _denodeify = require('denodeify');
+
+var _denodeify2 = _interopRequireDefault(_denodeify);
+
+var _asyncFs = require('../lib/fs/async-fs');
+
+var _asyncFs2 = _interopRequireDefault(_asyncFs);
+
+var _exists = require('../lib/fs/exists');
+
+var _exists2 = _interopRequireDefault(_exists);
+
+var _constants = require('../lib/constants');
+
+var _constants2 = _interopRequireDefault(_constants);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var IS_DEV = process.env.NODE_ENV === 'development';
+var argv = (0, _minimist2.default)(process.argv.slice(2), {
+  alias: {
+    help: ['h']
+  }
+});
+
+var help = function help() {
+  console.log('\n  ' + _chalk2.default.bold('ida build') + '\n\n  ' + _chalk2.default.dim('Examples:') + '\n\n  ' + _chalk2.default.gray('-') + ' Build current project:\n\n    ' + _chalk2.default.cyan('$ ida build') + '\n\n    ' + _chalk2.default.dim('Will build the project and output the finished site in folder "[project root]/_site".') + '\n  ');
+};
+
+var exit = function exit(code) {
+  setTimeout(function () {
+    return process.exit(code || 0);
+  }, 100);
+};
+
+var getSettings = function () {
+  var _ref = (0, _asyncToGenerator3.default)(_regenerator2.default.mark(function _callee(folder) {
+    var content;
+    return _regenerator2.default.wrap(function _callee$(_context) {
+      while (1) {
+        switch (_context.prev = _context.next) {
+          case 0:
+            _context.prev = 0;
+            _context.next = 3;
+            return _asyncFs2.default.readFile((0, _path.resolve)(folder, _constants2.default.SETTINGS_FILE), 'utf8');
+
+          case 3:
+            content = _context.sent;
+            return _context.abrupt('return', JSON.parse(content));
+
+          case 7:
+            _context.prev = 7;
+            _context.t0 = _context['catch'](0);
+            throw new Error(_constants2.default.SETTINGS_FILE + ' not found in folder ' + folder + '.');
+
+          case 10:
+          case 'end':
+            return _context.stop();
+        }
+      }
+    }, _callee, undefined, [[0, 7]]);
+  }));
+
+  return function getSettings(_x) {
+    return _ref.apply(this, arguments);
+  };
+}();
+
+var prepareLayout = function () {
+  var _ref2 = (0, _asyncToGenerator3.default)(_regenerator2.default.mark(function _callee2(projectFolder) {
+    return _regenerator2.default.wrap(function _callee2$(_context2) {
+      while (1) {
+        switch (_context2.prev = _context2.next) {
+          case 0:
+            return _context2.abrupt('return', {});
+
+          case 1:
+          case 'end':
+            return _context2.stop();
+        }
+      }
+    }, _callee2, undefined);
+  }));
+
+  return function prepareLayout(_x2) {
+    return _ref2.apply(this, arguments);
+  };
+}();
+
+var copyAssets = function () {
+  var _ref3 = (0, _asyncToGenerator3.default)(_regenerator2.default.mark(function _callee3(assetDir, projectDir) {
+    return _regenerator2.default.wrap(function _callee3$(_context3) {
+      while (1) {
+        switch (_context3.prev = _context3.next) {
+          case 0:
+            _context3.next = 2;
+            return (0, _denodeify2.default)(_copyDir2.default)(assetDir, (0, _path.resolve)(projectDir, _constants2.default.OUTPUT_DIR, 'assets'));
+
+          case 2:
+          case 'end':
+            return _context3.stop();
+        }
+      }
+    }, _callee3, undefined);
+  }));
+
+  return function copyAssets(_x3, _x4) {
+    return _ref3.apply(this, arguments);
+  };
+}();
+
+var build = function () {
+  var _ref4 = (0, _asyncToGenerator3.default)(_regenerator2.default.mark(function _callee4(path) {
+    var settings, layout;
+    return _regenerator2.default.wrap(function _callee4$(_context4) {
+      while (1) {
+        switch (_context4.prev = _context4.next) {
+          case 0:
+            _context4.next = 2;
+            return getSettings(path);
+
+          case 2:
+            settings = _context4.sent;
+            _context4.next = 5;
+            return prepareLayout(path);
+
+          case 5:
+            layout = _context4.sent;
+            _context4.next = 8;
+            return copyAssets(layout.assetDir, path);
+
+          case 8:
+            return _context4.abrupt('return', true);
+
+          case 9:
+          case 'end':
+            return _context4.stop();
+        }
+      }
+    }, _callee4, undefined);
+  }));
+
+  return function build(_x5) {
+    return _ref4.apply(this, arguments);
+  };
+}();
+
+if (argv.help) {
+  help();
+  exit(0);
+} else {
+  build(process.cwd()).then(function (success) {
+    if (success) {
+      console.log(_chalk2.default.bold.green('Project built successfully!'));
+    } else {
+      console.log(_chalk2.default.bold.yellow('Could not build project.'));
+    }
+  }).catch(function (err) {
+    console.log(_chalk2.default.bold.red('Failed to build project.'));
+    if (IS_DEV) {
+      console.log(_chalk2.default.red(err));
+    }
+  });
+}
+
 //     const content = yield get_content(path);
-
 //     yield build(outputDir, content, settings, prepareTemplates(layout.templates, layout.partials));
-//     if (layout.assetsDir) {
-//       copyDir.sync(layout.assetsDir, `${outputDir}/assets`);
-//     }
-
-//     return true;
-//   })
-//   .catch(err => {
-//     console.error('Failed to build project.');
-//     console.error(err.message);
-//     return false;
-//   });
-// };
 
 // function build(outputDir, content, settings, templates) {
 //   const context = createContext(content, settings);

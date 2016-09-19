@@ -1,43 +1,86 @@
 #!/usr/bin/env node
 'use strict'
 
-console.log('build', process.argv)
+import {resolve} from 'path'
+import minimist from 'minimist'
+import chalk from 'chalk'
+import copyDir from 'copy-dir'
+import toPromise from 'denodeify'
+import fs from '../lib/fs/async-fs'
+import exists from '../lib/fs/exists'
+import constants from '../lib/constants'
 
-// 'use strict';
+const IS_DEV = process.env.NODE_ENV === 'development'
+const argv = minimist(process.argv.slice(2), {
+  alias: {
+    help: ['h']
+  }
+})
 
-// const co = require('co');
-// const get_settings = require('./build.get_settings');
-// const get_layout = require('./build.get_layout');
-// const get_content = require('./build.get_content');
-// const prepareTemplates = require('./build.prepare_templates');
-// const createContext = require('./build.create_context');
-// const clearFolder = require('../fs/clear_folder');
-// const createFolder = require('../fs/create_folder');
-// const createFile = require('../fs/create_file');
-// const copyDir = require('copy-dir');
+const help = () => {
+  console.log(`
+  ${chalk.bold('ida build')}
 
-// module.exports = function () {
-//   const path = process.cwd();
-//   const outputDir = `${path}/_site`;
+  ${chalk.dim('Examples:')}
 
-//   co(function *() {
-//     const settings = yield get_settings(path);
-//     const layout = yield get_layout(path, settings);
+  ${chalk.gray('-')} Build current project:
+
+    ${chalk.cyan('$ ida build')}
+
+    ${chalk.dim('Will build the project and output the finished site in folder "[project root]/_site".')}
+  `)
+}
+
+const exit = code => {
+  setTimeout(() => process.exit(code || 0), 100)
+}
+
+const getSettings = async folder => {
+  try {
+    const content = await fs.readFile(resolve(folder, constants.SETTINGS_FILE), 'utf8')
+    return JSON.parse(content)
+  } catch (err) {
+    throw new Error(`${constants.SETTINGS_FILE} not found in folder ${folder}.`)
+  }
+}
+
+const prepareLayout = async projectFolder => {
+  return {}
+}
+
+const copyAssets = async (assetDir, projectDir) => {
+  await toPromise(copyDir)(assetDir, resolve(projectDir, constants.OUTPUT_DIR, 'assets'))
+}
+
+const build = async path => {
+  const settings = await getSettings(path)
+  const layout = await prepareLayout(path)
+  await copyAssets(layout.assetDir, path)
+
+
+  return true
+}
+
+if (argv.help) {
+  help()
+  exit(0)
+} else {
+  build(process.cwd()).then(success => {
+    if (success) {
+      console.log(chalk.bold.green(`Project built successfully!`))
+    } else {
+      console.log(chalk.bold.yellow(`Could not build project.`))
+    }
+  }).catch(err => {
+    console.log(chalk.bold.red(`Failed to build project.`))
+    if (IS_DEV) {
+      console.log(chalk.red(err))
+    }
+  })
+}
+
 //     const content = yield get_content(path);
-
 //     yield build(outputDir, content, settings, prepareTemplates(layout.templates, layout.partials));
-//     if (layout.assetsDir) {
-//       copyDir.sync(layout.assetsDir, `${outputDir}/assets`);
-//     }
-
-//     return true;
-//   })
-//   .catch(err => {
-//     console.error('Failed to build project.');
-//     console.error(err.message);
-//     return false;
-//   });
-// };
 
 // function build(outputDir, content, settings, templates) {
 //   const context = createContext(content, settings);

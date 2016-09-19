@@ -12,13 +12,9 @@ var _asyncToGenerator2 = require('babel-runtime/helpers/asyncToGenerator');
 
 var _asyncToGenerator3 = _interopRequireDefault(_asyncToGenerator2);
 
-var _fs = require('fs');
+var _asyncFs = require('./async-fs');
 
-var _fs2 = _interopRequireDefault(_fs);
-
-var _denodeify = require('denodeify');
-
-var _denodeify2 = _interopRequireDefault(_denodeify);
+var _asyncFs2 = _interopRequireDefault(_asyncFs);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -30,7 +26,7 @@ exports.default = function () {
           case 0:
             _context.prev = 0;
             _context.next = 3;
-            return (0, _denodeify2.default)(_fs2.default.stat)(path);
+            return _asyncFs2.default.stat(path);
 
           case 3:
             _context.next = 8;

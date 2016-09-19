@@ -59,7 +59,11 @@ var _constants2 = _interopRequireDefault(_constants);
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 var IS_DEV = process.env.NODE_ENV === 'development';
-var argv = (0, _minimist2.default)(process.argv.slice(2));
+var argv = (0, _minimist2.default)(process.argv.slice(2), {
+  alias: {
+    help: ['h']
+  }
+});
 var force = argv.force || argv.f;
 
 var help = function help() {
@@ -190,7 +194,7 @@ var create = function () {
   };
 }();
 
-if (argv.help || argv.h) {
+if (argv.help) {
   help();
   exit(0);
 } else {

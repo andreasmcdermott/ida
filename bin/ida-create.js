@@ -14,7 +14,11 @@ import createReadme from '../lib/create/readme'
 import constants from '../lib/constants'
 
 const IS_DEV = process.env.NODE_ENV === 'development'
-const argv = minimist(process.argv.slice(2))
+const argv = minimist(process.argv.slice(2), {
+  alias: {
+    help: ['h']
+  }
+})
 const force = argv.force || argv.f
 
 const help = () => {
@@ -79,7 +83,7 @@ const create = async path => {
   return true
 }
 
-if (argv.help || argv.h) {
+if (argv.help) {
   help()
   exit(0)
 } else {

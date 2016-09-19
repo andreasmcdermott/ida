@@ -58,12 +58,7 @@ var help = function help() {
 var commands = new _set2.default(['test', 'build', 'create', 'watch', 'version', 'help']);
 var defaultCommand = isProjectDir() ? 'build' : 'create';
 
-var argv = (0, _minimist2.default)(process.argv.slice(2), {
-  alias: {
-    help: ['h'],
-    version: ['v']
-  }
-});
+var argv = (0, _minimist2.default)(process.argv.slice(2));
 var cmd = argv._[0];
 var args = [];
 
