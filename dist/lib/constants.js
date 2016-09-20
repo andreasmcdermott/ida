@@ -10,5 +10,6 @@ exports.default = {
   THEMES_DIR: 'themes',
   LAYOUT_DIR: 'layout',
   TEMPLATES_DIR: 'templates',
+  PARTIALS_DIR: 'partials',
   ASSETS_DIR: 'assets'
 };

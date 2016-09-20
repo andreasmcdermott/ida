@@ -14,7 +14,7 @@ var _denodeify2 = _interopRequireDefault(_denodeify);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-var methods = ['stat', 'mkdir', 'writeFile', 'readFile'];
+var methods = ['stat', 'mkdir', 'writeFile', 'readFile', 'readdir'];
 var asyncFs = {};
 
 methods.forEach(function (method) {

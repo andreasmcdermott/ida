@@ -2,6 +2,10 @@
 
 'use strict';
 
+var _promise = require('babel-runtime/core-js/promise');
+
+var _promise2 = _interopRequireDefault(_promise);
+
 var _regenerator = require('babel-runtime/regenerator');
 
 var _regenerator2 = _interopRequireDefault(_regenerator);
@@ -28,6 +32,10 @@ var _denodeify = require('denodeify');
 
 var _denodeify2 = _interopRequireDefault(_denodeify);
 
+var _handlebars = require('handlebars');
+
+var _handlebars2 = _interopRequireDefault(_handlebars);
+
 var _asyncFs = require('../lib/fs/async-fs');
 
 var _asyncFs2 = _interopRequireDefault(_asyncFs);
@@ -35,6 +43,14 @@ var _asyncFs2 = _interopRequireDefault(_asyncFs);
 var _exists = require('../lib/fs/exists');
 
 var _exists2 = _interopRequireDefault(_exists);
+
+var _isDirectory = require('../lib/fs/is-directory');
+
+var _isDirectory2 = _interopRequireDefault(_isDirectory);
+
+var _getAllFiles = require('../lib/fs/get-all-files');
+
+var _getAllFiles2 = _interopRequireDefault(_getAllFiles);
 
 var _constants = require('../lib/constants');
 
@@ -93,14 +109,92 @@ var getSettings = function () {
 }();
 
 var prepareLayout = function () {
-  var _ref2 = (0, _asyncToGenerator3.default)(_regenerator2.default.mark(function _callee2(projectFolder) {
+  var _ref2 = (0, _asyncToGenerator3.default)(_regenerator2.default.mark(function _callee2(projectFolder, settings) {
+    var layoutDir, layoutData, files, promises, i, file, allTemplates, assetsDir;
     return _regenerator2.default.wrap(function _callee2$(_context2) {
       while (1) {
         switch (_context2.prev = _context2.next) {
           case 0:
-            return _context2.abrupt('return', {});
+            layoutDir = void 0;
 
-          case 1:
+            if (settings.theme) {
+              layoutDir = (0, _path.resolve)(projectFolder, _constants2.default.THEMES_DIR, settings.theme);
+            } else {
+              layoutDir = (0, _path.resolve)(projectFolder, _constants2.default.LAYOUT_DIR);
+            }
+
+            _context2.next = 4;
+            return (0, _isDirectory2.default)(layoutDir);
+
+          case 4:
+            if (_context2.sent) {
+              _context2.next = 6;
+              break;
+            }
+
+            throw new Error((settings.theme ? 'Theme "' + settings.theme + '"' : 'Layout') + ' not found.');
+
+          case 6:
+            layoutData = {};
+            _context2.next = 9;
+            return (0, _getAllFiles2.default)((0, _path.resolve)(layoutDir, _constants2.default.TEMPLATES_DIR));
+
+          case 9:
+            files = _context2.sent;
+            promises = [];
+
+            for (i = 0; i < files.length; ++i) {
+              file = files[i];
+
+              promises.push(_asyncFs2.default.readFile(file, 'utf8'));
+            }
+            _context2.next = 14;
+            return _promise2.default.all(promises);
+
+          case 14:
+            _context2.t0 = function (fileContent, i) {
+              var template = _handlebars2.default.compile(fileContent);
+              var fileInfo = (0, _path.parse)(files[i]);
+              var name = fileInfo.name;
+              var folders = (0, _path.relative)(projectFolder, fileInfo.dir).split('/');
+              var isPartial = folders[folders.length - 1] === _constants2.default.PARTIALS_DIR;
+              return {
+                template: template,
+                name: name,
+                folders: folders,
+                isPartial: isPartial
+              };
+            };
+
+            allTemplates = _context2.sent.map(_context2.t0);
+
+
+            layoutData.partials = allTemplates.filter(function (t) {
+              return t.isPartial;
+            });
+            layoutData.templates = allTemplates.filter(function (t) {
+              return !t.isPartial;
+            });
+
+            assetsDir = (0, _path.resolve)(layoutDir, _constants2.default.ASSETS_DIR);
+            _context2.next = 21;
+            return (0, _isDirectory2.default)(assetsDir);
+
+          case 21:
+            if (!_context2.sent) {
+              _context2.next = 23;
+              break;
+            }
+
+            layoutData.assetsDir = assetsDir;
+
+          case 23:
+
+            console.log(layoutData);
+
+            return _context2.abrupt('return', layoutData);
+
+          case 25:
           case 'end':
             return _context2.stop();
         }
@@ -108,7 +202,7 @@ var prepareLayout = function () {
     }, _callee2, undefined);
   }));
 
-  return function prepareLayout(_x2) {
+  return function prepareLayout(_x2, _x3) {
     return _ref2.apply(this, arguments);
   };
 }();
@@ -130,7 +224,7 @@ var copyAssets = function () {
     }, _callee3, undefined);
   }));
 
-  return function copyAssets(_x3, _x4) {
+  return function copyAssets(_x4, _x5) {
     return _ref3.apply(this, arguments);
   };
 }();
@@ -148,12 +242,12 @@ var build = function () {
           case 2:
             settings = _context4.sent;
             _context4.next = 5;
-            return prepareLayout(path);
+            return prepareLayout(path, settings);
 
           case 5:
             layout = _context4.sent;
             _context4.next = 8;
-            return copyAssets(layout.assetDir, path);
+            return copyAssets(layout.assetsDir, path);
 
           case 8:
             return _context4.abrupt('return', true);
@@ -166,7 +260,7 @@ var build = function () {
     }, _callee4, undefined);
   }));
 
-  return function build(_x5) {
+  return function build(_x6) {
     return _ref4.apply(this, arguments);
   };
 }();

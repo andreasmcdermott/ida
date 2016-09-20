@@ -1,17 +1,30 @@
 'use strict';
 
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
 var _regenerator = require('babel-runtime/regenerator');
 
 var _regenerator2 = _interopRequireDefault(_regenerator);
 
+var _asyncToGenerator2 = require('babel-runtime/helpers/asyncToGenerator');
+
+var _asyncToGenerator3 = _interopRequireDefault(_asyncToGenerator2);
+
+var _asyncFs = require('./async-fs');
+
+var _asyncFs2 = _interopRequireDefault(_asyncFs);
+
+var _isDirectory = require('./is-directory');
+
+var _isDirectory2 = _interopRequireDefault(_isDirectory);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-var co = require('co');
-var fs = require('co-fs');
-
-module.exports = function (root) {
-  return co(_regenerator2.default.mark(function _callee3() {
-    var stats, iterateFiles;
+exports.default = function () {
+  var _ref = (0, _asyncToGenerator3.default)(_regenerator2.default.mark(function _callee3(root) {
+    var iterateFiles;
     return _regenerator2.default.wrap(function _callee3$(_context4) {
       while (1) {
         switch (_context4.prev = _context4.next) {
@@ -29,7 +42,7 @@ module.exports = function (root) {
                         allFiles = [];
                         path = !subPath ? root : '' + root + subPath;
                         _context3.next = 4;
-                        return fs.readdir(path);
+                        return _asyncFs2.default.readdir(path);
 
                       case 4:
                         files = _context3.sent;
@@ -49,7 +62,7 @@ module.exports = function (root) {
                                         switch (_context.prev = _context.next) {
                                           case 0:
                                             _context.next = 2;
-                                            return fs.stat(filePath);
+                                            return _asyncFs2.default.stat(filePath);
 
                                           case 2:
                                             stats = _context.sent;
@@ -108,11 +121,9 @@ module.exports = function (root) {
                         break;
 
                       case 12:
-                        ;
-
                         return _context3.abrupt('return', allFiles);
 
-                      case 14:
+                      case 13:
                       case 'end':
                         return _context3.stop();
                     }
@@ -122,28 +133,30 @@ module.exports = function (root) {
             };
 
             _context4.next = 3;
-            return fs.stat(root);
+            return (0, _isDirectory2.default)(root);
 
           case 3:
-            stats = _context4.sent;
-
-            if (stats.isDirectory()) {
-              _context4.next = 6;
+            if (_context4.sent) {
+              _context4.next = 5;
               break;
             }
 
             throw new Error('"' + root + '" exists, but is not a folder.');
 
-          case 6:
+          case 5:
             return _context4.abrupt('return', iterateFiles(''));
 
-          case 7:
+          case 6:
           case 'end':
             return _context4.stop();
         }
       }
     }, _callee3, this);
-  })).catch(function (err) {
-    console.error('Path ' + root + ' doesn\'t exist.');
-  });
-};
+  }));
+
+  function getAllFiles(_x) {
+    return _ref.apply(this, arguments);
+  }
+
+  return getAllFiles;
+}();

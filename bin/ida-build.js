@@ -1,13 +1,16 @@
 #!/usr/bin/env node
 'use strict'
 
-import {resolve} from 'path'
+import {resolve, parse, relative} from 'path'
 import minimist from 'minimist'
 import chalk from 'chalk'
 import copyDir from 'copy-dir'
 import toPromise from 'denodeify'
+import Handlebars from 'handlebars'
 import fs from '../lib/fs/async-fs'
 import exists from '../lib/fs/exists'
+import isDirectory from '../lib/fs/is-directory'
+import getAllFiles from '../lib/fs/get-all-files'
 import constants from '../lib/constants'
 
 const IS_DEV = process.env.NODE_ENV === 'development'
@@ -44,8 +47,49 @@ const getSettings = async folder => {
   }
 }
 
-const prepareLayout = async projectFolder => {
-  return {}
+const prepareLayout = async (projectFolder, settings) => {
+  let layoutDir
+  if (settings.theme) {
+    layoutDir = resolve(projectFolder, constants.THEMES_DIR, settings.theme)
+  } else {
+    layoutDir = resolve(projectFolder, constants.LAYOUT_DIR)
+  }
+
+  if (!await isDirectory(layoutDir)) {
+    throw new Error(`${settings.theme ? `Theme "${settings.theme}"` : 'Layout'} not found.`)
+  }
+
+  const layoutData = {}
+
+  const files = await getAllFiles(resolve(layoutDir, constants.TEMPLATES_DIR))
+  const promises = []
+  for (let i = 0; i < files.length; ++i) {
+    const file = files[i]
+    promises.push(fs.readFile(file, 'utf8'))
+  }
+  const allTemplates = (await Promise.all(promises)).map((fileContent, i) => {
+    const template = Handlebars.compile(fileContent)
+    const fileInfo = parse(files[i])
+    const name = fileInfo.name
+    const folders = relative(projectFolder, fileInfo.dir).split('/')
+    const isPartial = folders[folders.length - 1] === constants.PARTIALS_DIR
+    return {
+      template,
+      name,
+      folders,
+      isPartial
+    }
+  })
+
+  layoutData.partials = allTemplates.filter(t => t.isPartial)
+  layoutData.templates = allTemplates.filter(t => !t.isPartial)
+
+  const assetsDir = resolve(layoutDir, constants.ASSETS_DIR)
+  if (await isDirectory(assetsDir)) {
+    layoutData.assetsDir = assetsDir
+  }
+
+  return layoutData
 }
 
 const copyAssets = async (assetDir, projectDir) => {
@@ -54,8 +98,8 @@ const copyAssets = async (assetDir, projectDir) => {
 
 const build = async path => {
   const settings = await getSettings(path)
-  const layout = await prepareLayout(path)
-  await copyAssets(layout.assetDir, path)
+  const layout = await prepareLayout(path, settings)
+  await copyAssets(layout.assetsDir, path)
 
 
   return true
