@@ -36,6 +36,10 @@ var _handlebars = require('handlebars');
 
 var _handlebars2 = _interopRequireDefault(_handlebars);
 
+var _marked = require('marked');
+
+var _marked2 = _interopRequireDefault(_marked);
+
 var _asyncFs = require('../lib/fs/async-fs');
 
 var _asyncFs2 = _interopRequireDefault(_asyncFs);
@@ -189,12 +193,9 @@ var prepareLayout = function () {
             layoutData.assetsDir = assetsDir;
 
           case 23:
-
-            console.log(layoutData);
-
             return _context2.abrupt('return', layoutData);
 
-          case 25:
+          case 24:
           case 'end':
             return _context2.stop();
         }
@@ -229,30 +230,90 @@ var copyAssets = function () {
   };
 }();
 
-var build = function () {
-  var _ref4 = (0, _asyncToGenerator3.default)(_regenerator2.default.mark(function _callee4(path) {
-    var settings, layout;
+var parseFileContent = function parseFileContent(fileContent) {
+  fileContent = fileContent.trim();
+  var parsedContent = { config: null, html: null, error: null };
+
+  if (fileContent.startsWith('{')) {
+    try {
+      var config = getConfigFromFileContent(fileContent);
+      parsedContent.config = JSON.parse(config);
+      fileContent = fileContent.substr(config.length);
+    } catch (err) {
+      parsedContent.error = err;
+    }
+  }
+
+  parsedContent.html = (0, _marked2.default)(fileContent.trim());
+
+  return parsedContent;
+};
+
+var getConfigFromFileContent = function getConfigFromFileContent(fileContent) {
+  var open = 0;
+
+  for (var i = 0; i < fileContent.length; ++i) {
+    if (fileContent[i] === '{') {
+      ++open;
+    } else if (fileContent[i] === '}') {
+      --open;
+
+      if (open === 0) {
+        return fileContent.substr(0, i + 1);
+      }
+    }
+  }
+
+  throw new Error('Invalid JSON.');
+};
+
+var collectContent = function () {
+  var _ref4 = (0, _asyncToGenerator3.default)(_regenerator2.default.mark(function _callee4(root) {
+    var contentRoot, files, promises, i, file, fileContents, content, _i, fileObj, contentItem;
+
     return _regenerator2.default.wrap(function _callee4$(_context4) {
       while (1) {
         switch (_context4.prev = _context4.next) {
           case 0:
-            _context4.next = 2;
-            return getSettings(path);
+            contentRoot = (0, _path.resolve)(root, _constants2.default.CONTENT_DIR);
+            _context4.next = 3;
+            return (0, _getAllFiles2.default)(contentRoot);
 
-          case 2:
-            settings = _context4.sent;
-            _context4.next = 5;
-            return prepareLayout(path, settings);
+          case 3:
+            files = _context4.sent;
+            promises = [];
 
-          case 5:
-            layout = _context4.sent;
+            for (i = 0; i < files.length; ++i) {
+              file = files[i];
+
+              promises.push(_asyncFs2.default.readFile(file, 'utf8'));
+            }
             _context4.next = 8;
-            return copyAssets(layout.assetsDir, path);
+            return _promise2.default.all(promises);
 
           case 8:
-            return _context4.abrupt('return', true);
+            fileContents = _context4.sent;
+            content = [];
 
-          case 9:
+            for (_i = 0; _i < fileContents.length; ++_i) {
+              fileObj = (0, _path.parse)(files[_i]);
+              contentItem = parseFileContent(fileContents[_i]);
+
+              if (!contentItem.error) {
+                content.push({
+                  name: fileObj.name,
+                  path: (0, _path.relative)(contentRoot, fileObj.dir),
+                  html: contentItem.html,
+                  config: contentItem.config
+                });
+              } else {
+                console.error(_chalk2.default.red('\nFailed to parse file "' + fileObj.basename + '" in folder "' + fileObj.dir + '". \nError: ' + contentItem.error + '.'));
+              }
+            }
+
+            return _context4.abrupt('return', content);
+
+          case 12:
           case 'end':
             return _context4.stop();
         }
@@ -260,8 +321,51 @@ var build = function () {
     }, _callee4, undefined);
   }));
 
-  return function build(_x6) {
+  return function collectContent(_x6) {
     return _ref4.apply(this, arguments);
+  };
+}();
+
+// //////
+
+var build = function () {
+  var _ref5 = (0, _asyncToGenerator3.default)(_regenerator2.default.mark(function _callee5(path) {
+    var settings, layout, content;
+    return _regenerator2.default.wrap(function _callee5$(_context5) {
+      while (1) {
+        switch (_context5.prev = _context5.next) {
+          case 0:
+            _context5.next = 2;
+            return getSettings(path);
+
+          case 2:
+            settings = _context5.sent;
+            _context5.next = 5;
+            return prepareLayout(path, settings);
+
+          case 5:
+            layout = _context5.sent;
+            _context5.next = 8;
+            return collectContent(path);
+
+          case 8:
+            content = _context5.sent;
+
+            console.log(content);
+            //await copyAssets(layout.assetsDir, path)
+
+            return _context5.abrupt('return', true);
+
+          case 11:
+          case 'end':
+            return _context5.stop();
+        }
+      }
+    }, _callee5, undefined);
+  }));
+
+  return function build(_x7) {
+    return _ref5.apply(this, arguments);
   };
 }();
 
@@ -376,7 +480,7 @@ if (argv.help) {
 //     });
 //   } else {
 //     let parent = templates;
-//     item.folders.forEach(folder => {  
+//     item.folders.forEach(folder => {
 //       if (parent[folder]) {
 //         parent = parent[folder];
 //       }

@@ -7,8 +7,8 @@ import chalk from 'chalk'
 import copyDir from 'copy-dir'
 import toPromise from 'denodeify'
 import Handlebars from 'handlebars'
+import marked from 'marked'
 import fs from '../lib/fs/async-fs'
-import exists from '../lib/fs/exists'
 import isDirectory from '../lib/fs/is-directory'
 import getAllFiles from '../lib/fs/get-all-files'
 import constants from '../lib/constants'
@@ -96,11 +96,78 @@ const copyAssets = async (assetDir, projectDir) => {
   await toPromise(copyDir)(assetDir, resolve(projectDir, constants.OUTPUT_DIR, 'assets'))
 }
 
+const parseFileContent = fileContent => {
+  fileContent = fileContent.trim()
+  const parsedContent = {config: null, html: null, error: null}
+
+  if (fileContent.startsWith('{')) {
+    try {
+      const config = getConfigFromFileContent(fileContent)
+      parsedContent.config = JSON.parse(config)
+      fileContent = fileContent.substr(config.length)
+    } catch (err) {
+      parsedContent.error = err
+    }
+  }
+
+  parsedContent.html = marked(fileContent.trim())
+
+  return parsedContent
+}
+
+const getConfigFromFileContent = fileContent => {
+  let open = 0
+
+  for (let i = 0; i < fileContent.length; ++i) {
+    if (fileContent[i] === '{') {
+      ++open
+    } else if (fileContent[i] === '}') {
+      --open
+
+      if (open === 0) {
+        return fileContent.substr(0, i + 1)
+      }
+    }
+  }
+
+  throw new Error('Invalid JSON.')
+}
+
+const collectContent = async root => {
+  const contentRoot = resolve(root, constants.CONTENT_DIR)
+  const files = await getAllFiles(contentRoot)
+  let promises = []
+  for (let i = 0; i < files.length; ++i) {
+    const file = files[i]
+    promises.push(fs.readFile(file, 'utf8'))
+  }
+  let fileContents = await Promise.all(promises)
+  let content = []
+  for (let i = 0; i < fileContents.length; ++i) {
+    let fileObj = parse(files[i])
+    let contentItem = parseFileContent(fileContents[i])
+    if (!contentItem.error) {
+      content.push({
+        name: fileObj.name,
+        path: relative(contentRoot, fileObj.dir),
+        html: contentItem.html,
+        config: contentItem.config
+      })
+    } else {
+      console.error(chalk.red(`
+Failed to parse file "${fileObj.basename}" in folder "${fileObj.dir}". 
+Error: ${contentItem.error}.`))
+    }
+  }
+
+  return content
+}
+
 const build = async path => {
   const settings = await getSettings(path)
   const layout = await prepareLayout(path, settings)
+  const content = await collectContent(path)
   await copyAssets(layout.assetsDir, path)
-
 
   return true
 }
@@ -144,7 +211,7 @@ if (argv.help) {
 
 //       let newFolders = yield createOutputFolders(outputDir, item.folders, createdFolders);
 //       createdFolders = createdFolders.concat(newFolders);
-    
+
 //       let current = getCurrentItemFromContext(context, item);
 //       if (!current) {
 //         continue;
@@ -179,7 +246,7 @@ if (argv.help) {
 //     let createdFolders = [];
 //     for(let i = 0; i < folders.length; ++i) {
 //       let folder = folders[i];
-      
+
 //       if (!alreadyCreated.includes(`${path}/${folder}`)) {
 //         yield createFolder(`${outputDir}/${path}`, folder);
 //         path += `/${folder}`;
@@ -216,7 +283,7 @@ if (argv.help) {
 //     });
 //   } else {
 //     let parent = templates;
-//     item.folders.forEach(folder => {  
+//     item.folders.forEach(folder => {
 //       if (parent[folder]) {
 //         parent = parent[folder];
 //       }
@@ -235,4 +302,4 @@ if (argv.help) {
 //     throw new Error(`Invalid layout for content ${item.name} in content/${item.folders.length ? item.folders.join('/') : ''}.`);
 //   }
 //   return template;
-// } 
+// }
