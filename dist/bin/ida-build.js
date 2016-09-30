@@ -40,13 +40,17 @@ var _marked = require('marked');
 
 var _marked2 = _interopRequireDefault(_marked);
 
+var _moment = require('moment');
+
+var _moment2 = _interopRequireDefault(_moment);
+
+var _mkdirp = require('mkdirp');
+
+var _mkdirp2 = _interopRequireDefault(_mkdirp);
+
 var _asyncFs = require('../lib/fs/async-fs');
 
 var _asyncFs2 = _interopRequireDefault(_asyncFs);
-
-var _exists = require('../lib/fs/exists');
-
-var _exists2 = _interopRequireDefault(_exists);
 
 var _isDirectory = require('../lib/fs/is-directory');
 
@@ -56,11 +60,17 @@ var _getAllFiles = require('../lib/fs/get-all-files');
 
 var _getAllFiles2 = _interopRequireDefault(_getAllFiles);
 
+var _helpers = require('../lib/hbs/helpers');
+
+var _helpers2 = _interopRequireDefault(_helpers);
+
 var _constants = require('../lib/constants');
 
 var _constants2 = _interopRequireDefault(_constants);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var ignoreFiles = ['.DS_Store'];
 
 var IS_DEV = process.env.NODE_ENV === 'development';
 var argv = (0, _minimist2.default)(process.argv.slice(2), {
@@ -139,11 +149,16 @@ var prepareLayout = function () {
             throw new Error((settings.theme ? 'Theme "' + settings.theme + '"' : 'Layout') + ' not found.');
 
           case 6:
+
+            _helpers2.default.forEach(function (helper) {
+              _handlebars2.default.registerHelper(helper.name, helper.func);
+            });
+
             layoutData = {};
-            _context2.next = 9;
+            _context2.next = 10;
             return (0, _getAllFiles2.default)((0, _path.resolve)(layoutDir, _constants2.default.TEMPLATES_DIR));
 
-          case 9:
+          case 10:
             files = _context2.sent;
             promises = [];
 
@@ -152,20 +167,27 @@ var prepareLayout = function () {
 
               promises.push(_asyncFs2.default.readFile(file, 'utf8'));
             }
-            _context2.next = 14;
+            _context2.next = 15;
             return _promise2.default.all(promises);
 
-          case 14:
+          case 15:
             _context2.t0 = function (fileContent, i) {
               var template = _handlebars2.default.compile(fileContent);
               var fileInfo = (0, _path.parse)(files[i]);
               var name = fileInfo.name;
-              var folders = (0, _path.relative)(projectFolder, fileInfo.dir).split('/');
-              var isPartial = folders[folders.length - 1] === _constants2.default.PARTIALS_DIR;
+              var relPath = (0, _path.relative)((0, _path.resolve)(layoutDir, _constants2.default.TEMPLATES_DIR), fileInfo.dir);
+              var path = (0, _path.relative)(projectFolder, fileInfo.dir);
+              var isPartial = path.endsWith(_constants2.default.PARTIALS_DIR);
+
+              if (isPartial) {
+                _handlebars2.default.registerPartial(name, template);
+              }
+
               return {
                 template: template,
                 name: name,
-                folders: folders,
+                path: path,
+                relPath: relPath,
                 isPartial: isPartial
               };
             };
@@ -181,21 +203,21 @@ var prepareLayout = function () {
             });
 
             assetsDir = (0, _path.resolve)(layoutDir, _constants2.default.ASSETS_DIR);
-            _context2.next = 21;
+            _context2.next = 22;
             return (0, _isDirectory2.default)(assetsDir);
 
-          case 21:
+          case 22:
             if (!_context2.sent) {
-              _context2.next = 23;
+              _context2.next = 24;
               break;
             }
 
             layoutData.assetsDir = assetsDir;
 
-          case 23:
+          case 24:
             return _context2.abrupt('return', layoutData);
 
-          case 24:
+          case 25:
           case 'end':
             return _context2.stop();
         }
@@ -294,26 +316,46 @@ var collectContent = function () {
           case 8:
             fileContents = _context4.sent;
             content = [];
+            _i = 0;
 
-            for (_i = 0; _i < fileContents.length; ++_i) {
-              fileObj = (0, _path.parse)(files[_i]);
-              contentItem = parseFileContent(fileContents[_i]);
-
-              if (!contentItem.error) {
-                content.push({
-                  name: fileObj.name,
-                  path: (0, _path.relative)(contentRoot, fileObj.dir),
-                  html: contentItem.html,
-                  config: contentItem.config
-                });
-              } else {
-                console.error(_chalk2.default.red('\nFailed to parse file "' + fileObj.basename + '" in folder "' + fileObj.dir + '". \nError: ' + contentItem.error + '.'));
-              }
+          case 11:
+            if (!(_i < fileContents.length)) {
+              _context4.next = 20;
+              break;
             }
 
+            fileObj = (0, _path.parse)(files[_i]);
+
+            if (!ignoreFiles.includes(fileObj.name)) {
+              _context4.next = 15;
+              break;
+            }
+
+            return _context4.abrupt('continue', 17);
+
+          case 15:
+            contentItem = parseFileContent(fileContents[_i]);
+
+            if (!contentItem.error) {
+              content.push({
+                name: fileObj.name,
+                path: (0, _path.relative)(contentRoot, fileObj.dir),
+                html: contentItem.html,
+                config: contentItem.config
+              });
+            } else {
+              console.error(_chalk2.default.red('\nFailed to parse file "' + fileObj.basename + '" in folder "' + fileObj.dir + '". \nError: ' + contentItem.error + '.'));
+            }
+
+          case 17:
+            ++_i;
+            _context4.next = 11;
+            break;
+
+          case 20:
             return _context4.abrupt('return', content);
 
-          case 12:
+          case 21:
           case 'end':
             return _context4.stop();
         }
@@ -326,37 +368,107 @@ var collectContent = function () {
   };
 }();
 
-// //////
+var getTemplate = function getTemplate(content, templates) {
+  var matchingTemplates = templates.filter(function (t) {
+    return t.relPath === content.path;
+  });
+  if (matchingTemplates.length === 1) {
+    return matchingTemplates[0].template;
+  } else if (matchingTemplates.length > 1) {
+    return matchingTemplates[0].template; // TODO
+  }
 
-var build = function () {
-  var _ref5 = (0, _asyncToGenerator3.default)(_regenerator2.default.mark(function _callee5(path) {
-    var settings, layout, content;
+  return null;
+};
+
+var getOutputFile = function getOutputFile(outputDir, content, settings) {
+  var outputFile = void 0;
+  if (content.path.startsWith(_constants2.default.POSTS_DIR)) {
+    var nameParts = content.name.split('--');
+    var name = nameParts.pop();
+    outputFile = (0, _path.resolve)(outputDir, 'posts', settings.prettyUrls ? name : name + '.html', settings.prettyUrls ? 'index.html' : '');
+  } else {
+    if (content.name === 'index' || !settings.prettyUrls) {
+      outputFile = (0, _path.resolve)(outputDir, content.path, content.name + '.html');
+    } else {
+      outputFile = (0, _path.resolve)(outputDir, content.path, content.name, 'index.html');
+    }
+  }
+
+  return outputFile;
+};
+
+var getContentItem = function getContentItem(item, settings) {
+  var nameParts = item.name.split('--');
+  var url = getOutputFile('/', item, settings);
+
+  return {
+    author: settings.author,
+    content: item.html,
+    date: nameParts.length > 1 ? nameParts.shift() : null,
+    title: item.config ? item.config.title : '',
+    categories: item.config && item.config.categories ? item.config.categories : [],
+    tags: item.config && item.config.tags ? item.config.tags : [],
+    url: settings.prettyUrls ? (0, _path.parse)(url).dir : url
+  };
+};
+
+var generateSite = function () {
+  var _ref5 = (0, _asyncToGenerator3.default)(_regenerator2.default.mark(function _callee5(outputDir, content, templates, settings) {
+    var context, i, item, template, outputFile;
     return _regenerator2.default.wrap(function _callee5$(_context5) {
       while (1) {
         switch (_context5.prev = _context5.next) {
           case 0:
-            _context5.next = 2;
-            return getSettings(path);
+            context = {
+              build: {
+                date: new Date()
+              },
+              site: {
+                title: settings.title,
+                description: settings.description,
+                author: settings.author,
+                language: settings.language,
+                url: settings.url
+              },
+              posts: content.filter(function (item) {
+                return item.path.startsWith(_constants2.default.POSTS_DIR);
+              }).map(function (item) {
+                return getContentItem(item, settings);
+              }).reverse(),
+              current: null
+            };
+            i = 0;
 
           case 2:
-            settings = _context5.sent;
-            _context5.next = 5;
-            return prepareLayout(path, settings);
+            if (!(i < content.length)) {
+              _context5.next = 15;
+              break;
+            }
 
-          case 5:
-            layout = _context5.sent;
-            _context5.next = 8;
-            return collectContent(path);
+            item = content[i];
+            template = getTemplate(item, templates);
 
-          case 8:
-            content = _context5.sent;
+            if (!template) {
+              _context5.next = 12;
+              break;
+            }
 
-            console.log(content);
-            //await copyAssets(layout.assetsDir, path)
+            context.current = getContentItem(item, settings);
+            outputFile = getOutputFile(outputDir, item, settings);
+            _context5.next = 10;
+            return (0, _denodeify2.default)(_mkdirp2.default)((0, _path.parse)(outputFile).dir);
 
-            return _context5.abrupt('return', true);
+          case 10:
+            _context5.next = 12;
+            return _asyncFs2.default.writeFile(outputFile, template(context), 'utf8');
 
-          case 11:
+          case 12:
+            ++i;
+            _context5.next = 2;
+            break;
+
+          case 15:
           case 'end':
             return _context5.stop();
         }
@@ -364,8 +476,53 @@ var build = function () {
     }, _callee5, undefined);
   }));
 
-  return function build(_x7) {
+  return function generateSite(_x7, _x8, _x9, _x10) {
     return _ref5.apply(this, arguments);
+  };
+}();
+
+var build = function () {
+  var _ref6 = (0, _asyncToGenerator3.default)(_regenerator2.default.mark(function _callee6(path) {
+    var settings, layout, content;
+    return _regenerator2.default.wrap(function _callee6$(_context6) {
+      while (1) {
+        switch (_context6.prev = _context6.next) {
+          case 0:
+            _context6.next = 2;
+            return getSettings(path);
+
+          case 2:
+            settings = _context6.sent;
+            _context6.next = 5;
+            return prepareLayout(path, settings);
+
+          case 5:
+            layout = _context6.sent;
+            _context6.next = 8;
+            return collectContent(path);
+
+          case 8:
+            content = _context6.sent;
+            _context6.next = 11;
+            return copyAssets(layout.assetsDir, path);
+
+          case 11:
+            _context6.next = 13;
+            return generateSite((0, _path.resolve)(path, _constants2.default.OUTPUT_DIR + '_temp'), content, layout.templates, settings);
+
+          case 13:
+            return _context6.abrupt('return', true);
+
+          case 14:
+          case 'end':
+            return _context6.stop();
+        }
+      }
+    }, _callee6, undefined);
+  }));
+
+  return function build(_x11) {
+    return _ref6.apply(this, arguments);
   };
 }();
 
@@ -386,9 +543,6 @@ if (argv.help) {
     }
   });
 }
-
-//     const content = yield get_content(path);
-//     yield build(outputDir, content, settings, prepareTemplates(layout.templates, layout.partials));
 
 // function build(outputDir, content, settings, templates) {
 //   const context = createContext(content, settings);

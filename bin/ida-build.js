@@ -8,10 +8,17 @@ import copyDir from 'copy-dir'
 import toPromise from 'denodeify'
 import Handlebars from 'handlebars'
 import marked from 'marked'
+import moment from 'moment'
+import mkdirp from 'mkdirp'
 import fs from '../lib/fs/async-fs'
 import isDirectory from '../lib/fs/is-directory'
 import getAllFiles from '../lib/fs/get-all-files'
+import hbsHelpers from '../lib/hbs/helpers'
 import constants from '../lib/constants'
+
+const ignoreFiles = [
+  '.DS_Store'
+]
 
 const IS_DEV = process.env.NODE_ENV === 'development'
 const argv = minimist(process.argv.slice(2), {
@@ -59,6 +66,10 @@ const prepareLayout = async (projectFolder, settings) => {
     throw new Error(`${settings.theme ? `Theme "${settings.theme}"` : 'Layout'} not found.`)
   }
 
+  hbsHelpers.forEach(helper => {
+    Handlebars.registerHelper(helper.name, helper.func)
+  })
+
   const layoutData = {}
 
   const files = await getAllFiles(resolve(layoutDir, constants.TEMPLATES_DIR))
@@ -71,12 +82,19 @@ const prepareLayout = async (projectFolder, settings) => {
     const template = Handlebars.compile(fileContent)
     const fileInfo = parse(files[i])
     const name = fileInfo.name
-    const folders = relative(projectFolder, fileInfo.dir).split('/')
-    const isPartial = folders[folders.length - 1] === constants.PARTIALS_DIR
+    const relPath = relative(resolve(layoutDir, constants.TEMPLATES_DIR), fileInfo.dir)
+    const path = relative(projectFolder, fileInfo.dir)
+    const isPartial = path.endsWith(constants.PARTIALS_DIR)
+
+    if (isPartial) {
+      Handlebars.registerPartial(name, template)
+    }
+
     return {
       template,
       name,
-      folders,
+      path,
+      relPath,
       isPartial
     }
   })
@@ -145,6 +163,10 @@ const collectContent = async root => {
   let content = []
   for (let i = 0; i < fileContents.length; ++i) {
     let fileObj = parse(files[i])
+    if (ignoreFiles.includes(fileObj.name)) {
+      continue
+    }
+    
     let contentItem = parseFileContent(fileContents[i])
     if (!contentItem.error) {
       content.push({
@@ -163,11 +185,89 @@ Error: ${contentItem.error}.`))
   return content
 }
 
+const getTemplate = (content, templates) => {
+  const matchingTemplates = templates.filter(t => t.relPath === content.path)
+  if (matchingTemplates.length === 1) {
+    return matchingTemplates[0].template
+  } else if (matchingTemplates.length > 1) {
+    return matchingTemplates[0].template // TODO
+  }
+
+  return null
+}
+
+const getOutputFile = (outputDir, content, settings) => {
+  let outputFile
+  if (content.path.startsWith(constants.POSTS_DIR)) {
+    const nameParts = content.name.split('--')
+    const name = nameParts.pop()
+    outputFile = resolve(outputDir, 
+                         'posts', 
+                         settings.prettyUrls ? name : `${name}.html`,
+                         settings.prettyUrls ? 'index.html' : '')
+  } else {
+    if (content.name === 'index' || !settings.prettyUrls) {
+      outputFile = resolve(outputDir, content.path, `${content.name}.html`)
+    } else {
+      outputFile = resolve(outputDir, content.path, content.name, 'index.html')
+    }
+  }
+
+  return outputFile
+}
+
+const getContentItem = (item, settings) => {
+  const nameParts = item.name.split('--')
+  const url = getOutputFile('/', item, settings)
+
+  return {
+    author: settings.author,
+    content: item.html,
+    date: nameParts.length > 1 ? nameParts.shift() : null,
+    title: item.config ? item.config.title : '',
+    categories: item.config && item.config.categories ? item.config.categories : [],
+    tags: item.config && item.config.tags ? item.config.tags : [],
+    url: settings.prettyUrls ? parse(url).dir : url
+  }
+}
+
+const generateSite = async (outputDir, content, templates, settings) => {
+  const context = {
+    build: {
+      date: new Date()
+    },
+    site: {
+      title: settings.title,
+      description: settings.description,
+      author: settings.author,
+      language: settings.language,
+      url: settings.url
+    },
+    posts: content.filter(item => item.path.startsWith(constants.POSTS_DIR))
+                  .map(item => getContentItem(item, settings))
+                  .reverse(),
+    current: null
+  }
+
+  for (let i = 0; i < content.length; ++i) {
+    const item = content[i]
+    const template = getTemplate(item, templates)
+    if (template) {
+      context.current = getContentItem(item, settings)
+      const outputFile = getOutputFile(outputDir, item, settings)
+
+      await toPromise(mkdirp)(parse(outputFile).dir)
+      await fs.writeFile(outputFile, template(context), 'utf8')
+    }
+  }
+}
+
 const build = async path => {
   const settings = await getSettings(path)
   const layout = await prepareLayout(path, settings)
   const content = await collectContent(path)
   await copyAssets(layout.assetsDir, path)
+  await generateSite(resolve(path, `${constants.OUTPUT_DIR}_temp`), content, layout.templates, settings)
 
   return true
 }
@@ -189,9 +289,6 @@ if (argv.help) {
     }
   })
 }
-
-//     const content = yield get_content(path);
-//     yield build(outputDir, content, settings, prepareTemplates(layout.templates, layout.partials));
 
 // function build(outputDir, content, settings, templates) {
 //   const context = createContext(content, settings);

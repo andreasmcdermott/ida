@@ -11,5 +11,6 @@ exports.default = {
   LAYOUT_DIR: 'layout',
   TEMPLATES_DIR: 'templates',
   PARTIALS_DIR: 'partials',
-  ASSETS_DIR: 'assets'
+  ASSETS_DIR: 'assets',
+  POSTS_DIR: 'posts'
 };
