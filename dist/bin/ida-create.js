@@ -52,6 +52,10 @@ var _readme = require('../lib/create/readme');
 
 var _readme2 = _interopRequireDefault(_readme);
 
+var _prompt = require('../lib/input/prompt');
+
+var _prompt2 = _interopRequireDefault(_prompt);
+
 var _constants = require('../lib/constants');
 
 var _constants2 = _interopRequireDefault(_constants);
@@ -138,50 +142,26 @@ var create = function () {
 
           case 20:
             title = (0, _path.basename)(path);
-            settings = {
-              title: title,
-              description: '',
-              author: '',
-              theme: '',
-              prettyUrls: true,
-              language: 'en',
-              url: 'http://www.' + title + '.com'
-            };
-            _context.next = 24;
-            return (0, _createFile2.default)(path, _constants2.default.SETTINGS_FILE, (0, _stringify2.default)(settings, null, 2));
+            _context.next = 23;
+            return (0, _prompt2.default)([{ name: 'title', message: 'Title', default: title }, { name: 'description', message: 'Description', default: '' }, { name: 'author', message: 'Author', default: '' }, { name: 'language', message: 'Language', default: 'en' }, { name: 'url', message: 'Url', default: 'http://www.' + title + '.com' }, { name: 'prettyUrls', message: 'Use pretty urls', default: 'yes', type: 'confirm' }, { name: 'outputDir', message: 'Output directory', default: '_site' }]);
 
-          case 24:
+          case 23:
+            settings = _context.sent;
             _context.next = 26;
-            return (0, _createFile2.default)(path, 'README.md', (0, _readme2.default)(settings.title));
+            return (0, _createFile2.default)(path, _constants2.default.SETTINGS_FILE, (0, _stringify2.default)(settings, null, 2));
 
           case 26:
             _context.next = 28;
-            return (0, _createFolder2.default)(path, _constants2.default.OUTPUT_DIR);
+            return (0, _createFile2.default)(path, 'README.md', (0, _readme2.default)(settings.title));
 
           case 28:
             _context.next = 30;
-            return (0, _createFolder2.default)(path, _constants2.default.THEMES_DIR);
+            return (0, _createFolder2.default)(path, settings.outputDir);
 
           case 30:
-            _context.next = 32;
-            return (0, _createFolder2.default)(path, _constants2.default.CONTENT_DIR);
-
-          case 32:
-            _context.next = 34;
-            return (0, _createFolder2.default)(path, _constants2.default.LAYOUT_DIR);
-
-          case 34:
-            _context.next = 36;
-            return (0, _createFolder2.default)(path, _constants2.default.LAYOUT_DIR, _constants2.default.TEMPLATES_DIR);
-
-          case 36:
-            _context.next = 38;
-            return (0, _createFolder2.default)(path, _constants2.default.LAYOUT_DIR, _constants2.default.ASSETS_DIR);
-
-          case 38:
             return _context.abrupt('return', true);
 
-          case 39:
+          case 31:
           case 'end':
             return _context.stop();
         }

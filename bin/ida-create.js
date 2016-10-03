@@ -11,6 +11,7 @@ import createFolder from '../lib/fs/create-folder'
 import exists from '../lib/fs/exists'
 import isEmpty from '../lib/fs/is-empty'
 import createReadme from '../lib/create/readme'
+import prompt from '../lib/input/prompt'
 import constants from '../lib/constants'
 
 const IS_DEV = process.env.NODE_ENV === 'development'
@@ -61,24 +62,19 @@ const create = async path => {
   await del([`${path}/**`, `!${path}`])
 
   const title = basename(path)
-  const settings = {
-    title,
-    description: '',
-    author: '',
-    theme: '',
-    prettyUrls: true,
-    language: 'en',
-    url: `http://www.${title}.com`
-  }
+  const settings = await prompt([
+    {name: 'title', message: 'Title', default: title},
+    {name: 'description', message: 'Description', default: ''},
+    {name: 'author', message: 'Author', default: ''},
+    {name: 'language', message: 'Language', default: 'en'},
+    {name: 'url', message: 'Url', default: `http://www.${title}.com`},
+    {name: 'prettyUrls', message: 'Use pretty urls', default: 'yes', type: 'confirm'},
+    {name: 'outputDir', message: 'Output directory', default: '_site'}
+  ])
 
   await createFile(path, constants.SETTINGS_FILE, JSON.stringify(settings, null, 2))
   await createFile(path, 'README.md', createReadme(settings.title))
-  await createFolder(path, constants.OUTPUT_DIR)
-  await createFolder(path, constants.THEMES_DIR)
-  await createFolder(path, constants.CONTENT_DIR)
-  await createFolder(path, constants.LAYOUT_DIR)
-  await createFolder(path, constants.LAYOUT_DIR, constants.TEMPLATES_DIR)
-  await createFolder(path, constants.LAYOUT_DIR, constants.ASSETS_DIR)
+  await createFolder(path, settings.outputDir)
 
   return true
 }

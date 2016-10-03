@@ -30,7 +30,8 @@
     "marked": "^0.3.6",
     "minimist": "^1.2.0",
     "mkdirp": "^0.5.1",
-    "moment": "^2.15.0"
+    "moment": "^2.15.0",
+    "walk": "^2.3.9"
   },
   "devDependencies": {
     "babel-plugin-transform-async-to-generator": "^6.8.0",
