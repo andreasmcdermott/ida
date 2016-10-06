@@ -27,6 +27,7 @@ $ ida create my-new-site
 ```
 
 Will create the following:
+```
 - ./my-new-site/
   |- articles/
   |- pages/
@@ -38,6 +39,7 @@ Will create the following:
   |- articles.json
   |- pages.json
   |- site.json
+```
   
 #### Create a new article or page
 
