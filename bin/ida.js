@@ -6,7 +6,6 @@ import {resolve} from 'path'
 import minimist from 'minimist'
 import {spawn} from 'cross-spawn'
 import chalk from 'chalk'
-import constants from '../lib/constants'
 import pkg from '../../package.json'
 
 const exit = code => {
@@ -15,7 +14,7 @@ const exit = code => {
 
 const isProjectDir = () => {
   try {
-    fs.statSync(resolve(process.cwd(), constants.SETTINGS_FILE))
+    fs.statSync(resolve(process.cwd(), 'ida.json'))
   } catch (err) {
     return false
   }
@@ -34,8 +33,9 @@ const help = () => {
 
   ${chalk.dim('Commands:')}
 
-    create [name]         Create a new project.             
-    build                 Generate the site.
+    create [name]         Create a new project.
+    new [article/page]   Create a new page or article.
+    build [dev]           Generate the site.
     watch                 Generate site on file change.
     version               Current version.
     help                  Output usage information.
@@ -43,7 +43,7 @@ const help = () => {
   `)
 }
 
-const commands = new Set(['test', 'build', 'create', 'watch', 'version', 'help'])
+const commands = new Set(['build', 'create', 'watch', 'version', 'help'])
 const defaultCommand = isProjectDir() ? 'build' : 'create'
 
 const argv = minimist(process.argv.slice(2))

@@ -12,15 +12,13 @@ import exists from '../lib/fs/exists'
 import isEmpty from '../lib/fs/is-empty'
 import createReadme from '../lib/create/readme'
 import prompt from '../lib/input/prompt'
-import constants from '../lib/constants'
 
-const IS_DEV = process.env.NODE_ENV === 'development'
 const argv = minimist(process.argv.slice(2), {
   alias: {
-    help: ['h']
+    help: ['h'],
+    force: ['f']
   }
 })
-const force = argv.force || argv.f
 
 const help = () => {
   console.log(`
@@ -52,7 +50,7 @@ const exit = code => {
 const create = async path => {
   if (!(await exists(path))) {
     await createFolder(path)
-  } else if (!(await isEmpty(path)) && !force) {
+  } else if (!(await isEmpty(path)) && !argv.force) {
     const clearFolder = await confirm('Folder not empty. Delete all files?')
     if (!clearFolder) {
       return false
@@ -68,12 +66,13 @@ const create = async path => {
     {name: 'author', message: 'Author', default: ''},
     {name: 'language', message: 'Language', default: 'en'},
     {name: 'url', message: 'Url', default: `http://www.${title}.com`},
-    {name: 'prettyUrls', message: 'Use pretty urls', default: 'yes', type: 'confirm'},
     {name: 'outputDir', message: 'Output directory', default: '_site'}
   ])
 
-  await createFile(path, constants.SETTINGS_FILE, JSON.stringify(settings, null, 2))
-  await createFile(path, 'README.md', createReadme(settings.title))
+  await createFile(path, 'ida.json', JSON.stringify(settings, null, 2))
+  await createFile(path, 'content.json', JSON.stringify({articles: [], pages: []}, null, 2))
+  await createFile(path, 'README.md', createReadme(settings))
+  await createFolder(path, settings.outputDir)
   await createFolder(path, settings.outputDir)
 
   return true
@@ -96,8 +95,6 @@ if (argv.help) {
     }
   }).catch(err => {
     console.log(chalk.bold.red('Failed to create project.'))
-    if (IS_DEV) {
-      console.log(chalk.red(err))
-    }
+    console.log(chalk.red(err))
   })
 }

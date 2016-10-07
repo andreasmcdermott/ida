@@ -15,7 +15,7 @@ $ npm install ida -g
 | ---           | ---                           | ---         |
 | **create**    | [name]                        | Create a new project. If no name is specified the project will be created in the current folder. If a name is specified it will be created as a new directory in the current folder with that name. If the folder is not empty, it will ask to confirm before deleting any content. |
 | **new**       | [article/page]                | Create a new page or article. Article is default. |
-| **build**     | [dev]                         | Build the site. |
+| **build**     | -                             | Build the site. |
 | **watch**     | -                             | Rebuild the site on file changes. Useful to see changes directly in browser. Dev-option is used when rebuilding. |
 
 ### Examples
@@ -36,9 +36,8 @@ Will create the following:
   |  |- css
   |  |- js
   |- templates/
-  |- articles.json
-  |- pages.json
-  |- site.json
+  |- ida.json
+  |- README.md
 ```
   
 #### Create a new article or page
